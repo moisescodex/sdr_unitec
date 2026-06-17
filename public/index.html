@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Perelli Corretora - SDR CRM Admin Panel</title>
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background decorative glows -->
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo">
+        <img src="logo.png" alt="Perelli Corretora" class="logo-img">
+        <h1>Perelli <span>SDR Dashboard</span></h1>
+      </div>
+      
+      <!-- Navigation Tabs -->
+      <nav class="app-nav">
+        <button class="nav-tab active" data-target="view-crm">CRM Kanban</button>
+        <button class="nav-tab" data-target="view-channels">Canais de WhatsApp</button>
+        <button class="nav-tab" data-target="view-documents">Documentos e PDFs</button>
+        <button class="nav-tab" data-target="view-intelligence">IA & Analytics</button>
+      </nav>
+
+      <div class="header-actions">
+        <button id="btn-theme-toggle" class="btn btn-secondary theme-btn">
+          ☀️ Tema Clean
+        </button>
+        <div class="channel-select-group">
+          <label for="channel-filter">Canal:</label>
+          <select id="channel-filter">
+            <option value="">Todos os canais</option>
+          </select>
+        </div>
+        <div class="channel-select-group">
+          <label for="source-filter">Origem:</label>
+          <select id="source-filter">
+            <option value="">Todas as origens</option>
+            <option value="meta">Campanhas Meta (Ads)</option>
+            <option value="csv">Importação Planilha</option>
+            <option value="crm">CRM Manual</option>
+          </select>
+        </div>
+        <div class="header-status">
+          <div class="status-indicator online"></div>
+          <span>SDR Ativo</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Views Container -->
+  <main class="main-container">
+
+    <!-- VIEW 1: KANBAN CRM BOARD -->
+    <section id="view-crm" class="tab-view active">
+      <div class="board-header">
+        <h2>Funil de Qualificação & Vendas</h2>
+        <div class="board-header-actions" style="display: flex; gap: 0.5rem;">
+          <button id="btn-import-leads" class="btn btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Importar Planilha (CSV)
+          </button>
+          <button id="btn-refresh" class="btn btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            Atualizar Quadro
+          </button>
+        </div>
+      </div>
+
+      <!-- Selector de colunas visível apenas no celular -->
+      <div class="mobile-column-selector">
+        <button class="mobile-column-tab active" data-stage="SITUATION">
+          Quali. <span class="mobile-badge" id="badge-situation">0</span>
+        </button>
+        <button class="mobile-column-tab" data-stage="NEED_PAYOFF">
+          Proposta <span class="mobile-badge" id="badge-need_payoff">0</span>
+        </button>
+        <button class="mobile-column-tab" data-stage="MEETING_SCHEDULED">
+          Negoc. <span class="mobile-badge" id="badge-meeting_scheduled">0</span>
+        </button>
+        <button class="mobile-column-tab" data-stage="CONVERTED">
+          Fecham. <span class="mobile-badge" id="badge-converted">0</span>
+        </button>
+      </div>
+
+      <div class="kanban-board">
+        <!-- Column 1: Qualification -->
+        <div class="kanban-column" data-stage="SITUATION">
+          <div class="column-title">
+            <span class="stage-tag tag-situation">Qualificação</span>
+            <h3>Dados Iniciais</h3>
+            <span class="card-count">0</span>
+          </div>
+          <div class="column-cards" id="col-situation"></div>
+        </div>
+
+        <!-- Column 2: Proposal Sent -->
+        <div class="kanban-column" data-stage="NEED_PAYOFF">
+          <div class="column-title">
+            <span class="stage-tag tag-payoff">Proposta Enviada</span>
+            <h3>Valores & Planos</h3>
+            <span class="card-count">0</span>
+          </div>
+          <div class="column-cards" id="col-payoff"></div>
+        </div>
+
+        <!-- Column 3: Carências e Benefícios -->
+        <div class="kanban-column" data-stage="MEETING_SCHEDULED">
+          <div class="column-title">
+            <span class="stage-tag tag-scheduled">Carências & Descontos</span>
+            <h3>Negociação</h3>
+            <span class="card-count">0</span>
+          </div>
+          <div class="column-cards" id="col-scheduled"></div>
+        </div>
+
+        <!-- Column 4: Converted/Closed -->
+        <div class="kanban-column" data-stage="CONVERTED">
+          <div class="column-title">
+            <span class="stage-tag tag-implication">Fechamento</span>
+            <h3>Documentos / Cadastro</h3>
+            <span class="card-count">0</span>
+          </div>
+          <div class="column-cards" id="col-converted"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: CHANNELS MANAGEMENT -->
+    <section id="view-channels" class="tab-view hidden">
+      <div class="view-header">
+        <h2>Gestão de Canais do WhatsApp</h2>
+        <p>Cadastre e gerencie as conexões de WhatsApp integradas ao robô SDR.</p>
+      </div>
+
+      <div class="channels-grid">
+        <!-- Form to Add/Edit Channel -->
+        <div class="sidebar-panel channels-panel">
+          <div class="panel-header">
+            <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+            <h3>Cadastrar Novo Canal</h3>
+          </div>
+          <div class="panel-body">
+            <form id="channel-form" onsubmit="event.preventDefault();">
+              <div class="form-group">
+                <label for="chan-name">Nome do Canal</label>
+                <input type="text" id="chan-name" placeholder="Ex: WhatsApp Comercial" required>
+              </div>
+              <div class="form-group">
+                <label for="chan-phone-id">ID do Número (Phone Number ID / Whaticket Connection ID)</label>
+                <input type="text" id="chan-phone-id" placeholder="Ex: 39 ou 1082686744934106" required>
+              </div>
+              <div class="form-group">
+                <label for="chan-display">Número de WhatsApp</label>
+                <input type="text" id="chan-display" placeholder="Ex: +55 (17) 99127-9086" required>
+              </div>
+              <div class="form-group">
+                <label for="chan-token">Token de Acesso / API Key</label>
+                <input type="password" id="chan-token" placeholder="Insira o Token ou formato 'API_KEY;UUID_API_ID'">
+              </div>
+              <button type="submit" id="btn-save-chan" class="btn btn-primary btn-block">
+                Salvar Canal
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Connected Channels Table -->
+        <div class="sidebar-panel channel-list-panel">
+          <div class="panel-header">
+            <h3>Canais Ativos no CRM</h3>
+          </div>
+          <div class="panel-body">
+            <div class="table-container">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Nome do Canal</th>
+                    <th>ID / Número</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="channels-table-body">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: DOCUMENTS & PDF FILE MANAGER -->
+    <section id="view-documents" class="tab-view hidden">
+      <div class="view-header">
+        <h2>Gerenciador de Documentos e Mídias</h2>
+        <p>Envie PDFs de propostas e áudios que o SDR utiliza nas respostas consultivas. O sistema realiza commit automático no Git e deploy no Render.</p>
+      </div>
+
+      <div class="docs-grid">
+        <!-- Drag & Drop Upload Zone -->
+        <div class="sidebar-panel upload-panel">
+          <div class="panel-header">
+            <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <h3>Upload de Documento (Git Auto-Commit)</h3>
+          </div>
+          <div class="panel-body">
+            <div class="upload-dropzone" id="upload-dropzone">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              <p>Arraste e solte o arquivo aqui ou clique para selecionar</p>
+              <input type="file" id="file-upload-input" style="display: none;" accept=".pdf,.mp3,.ogg,.png,.jpg,.jpeg">
+              <div class="file-name-preview" id="file-name-preview">Nenhum arquivo selecionado</div>
+            </div>
+            
+            <button id="btn-upload-file" class="btn btn-primary btn-block" style="margin-top: 1.25rem;" disabled>
+              Subir Arquivo & Disparar Deploy
+            </button>
+            <div class="upload-status" id="upload-status"></div>
+          </div>
+        </div>
+
+        <!-- Files List Table -->
+        <div class="sidebar-panel doc-list-panel">
+          <div class="panel-header">
+            <h3>Arquivos Hospedados (/documentos)</h3>
+          </div>
+          <div class="panel-body">
+            <div class="table-container">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Nome do Arquivo</th>
+                    <th>Tamanho</th>
+                    <th>Link / Visualização</th>
+                  </tr>
+                </thead>
+                <tbody id="documents-table-body">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IA & ANALYTICS SECTION -->
+    <section id="view-intelligence" class="tab-view hidden">
+      <div class="board-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <h2>IA & Inteligência de Negócio</h2>
+        <button id="btn-update-analytics" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg class="btn-icon spinner-icon hidden" id="analytics-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px; animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="4"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="4"></path>
+          </svg>
+          <span id="analytics-btn-text">Solicitar Nova Análise à IA</span>
+        </button>
+      </div>
+
+      <!-- Funnel Metrics Bento Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Leads Totais</div>
+          <div class="metric-value" id="metric-total-leads">-</div>
+          <div class="metric-sub">Base completa cadastrada</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Taxa de Resposta</div>
+          <div class="metric-value" id="metric-response-rate">-</div>
+          <div class="metric-sub">Leads que enviaram mensagem</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Taxa de Propostas</div>
+          <div class="metric-value" id="metric-proposal-rate">-</div>
+          <div class="metric-sub">Atingiram etapa de checkout</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Taxa de Conversão</div>
+          <div class="metric-value" id="metric-conversion-rate">-</div>
+          <div class="metric-sub">Enviados para a Cozinha/Vendas</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Tempo Médio de Resposta</div>
+          <div class="metric-value" id="metric-response-time">-</div>
+          <div class="metric-sub">Tempo médio do lead responder</div>
+        </div>
+      </div>
+
+      <!-- IA Continuous Learning Reports -->
+      <div class="analytics-panels" style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        
+        <!-- Fatores de Avanço (Success Factors) -->
+        <div class="sidebar-panel success-panel">
+          <div class="panel-header">
+            <h3>📈 O que faz os clientes avançarem</h3>
+          </div>
+          <div class="panel-body">
+            <ul class="insights-list" id="analytics-success-factors">
+              <li style="color: var(--text-secondary);">Carregando fatores de sucesso...</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Fatores de Abandono (Dropoff Factors) -->
+        <div class="sidebar-panel dropoff-panel">
+          <div class="panel-header">
+            <h3>📉 O que faz os clientes abandonarem</h3>
+          </div>
+          <div class="panel-body">
+            <ul class="insights-list" id="analytics-dropoff-factors">
+              <li style="color: var(--text-secondary);">Carregando fatores de abandono...</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="analytics-panels" style="margin-top: 1.5rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+        
+        <!-- Objeções e Dúvidas (Objections Table) -->
+        <div class="sidebar-panel objections-panel">
+          <div class="panel-header">
+            <h3>🛡️ Principais Objeções e Dúvidas Detectadas</h3>
+          </div>
+          <div class="panel-body" style="padding: 0;">
+            <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+              <table class="modern-table" style="font-size: 0.8rem; width: 100%;">
+                <thead>
+                  <tr>
+                    <th>Dúvida / Objeção</th>
+                    <th>Frequência</th>
+                    <th>Eficácia SDR</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-objections-body">
+                  <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary); padding: 1rem;">Nenhuma objeção mapeada ainda.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Melhores Incentivos e Recomendações -->
+        <div class="sidebar-panel recommendations-panel">
+          <div class="panel-header">
+            <h3>💡 Melhores Incentivos & Recomendações</h3>
+          </div>
+          <div class="panel-body">
+            <h4 style="font-size: 0.8rem; font-weight: 600; color: var(--success-accent); margin-bottom: 0.5rem;">Gatilhos Mais Fortes:</h4>
+            <ul class="insights-list" id="analytics-best-incentives" style="margin-bottom: 1rem;">
+              <li style="color: var(--text-secondary);">Carregando...</li>
+            </ul>
+            
+            <h4 style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">Recomendações Práticas:</h4>
+            <ul class="insights-list" id="analytics-recommendations">
+              <li style="color: var(--text-secondary);">Carregando...</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Horários de Entrada (Entry Distribution Graph) -->
+      <div class="sidebar-panel hourly-distribution-panel" style="margin-top: 1.5rem;">
+        <div class="panel-header">
+          <h3>📊 Horários de Pico dos Leads (Distribuição de Chegada por Hora)</h3>
+        </div>
+        <div class="panel-body">
+          <div class="hours-chart-container" id="hours-chart-container" style="display: flex; justify-content: space-between; align-items: flex-end; height: 160px; padding: 1rem 0; gap: 4px;">
+            <!-- Render bars dynamically in JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- LIVE CHAT OVERLAY DRAWER -->
+  <div class="chat-drawer" id="chat-drawer">
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <div class="drawer-lead-info">
+          <h3 id="chat-lead-name">Nome do Cliente</h3>
+          <span id="chat-lead-phone" class="phone-subtitle">551731980456</span>
+        </div>
+        <button id="btn-close-chat" class="btn-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Lead Details and Qualification Metadata -->
+      <div class="lead-details-bar">
+        <div class="detail-item">
+          <strong>Estágio Funil:</strong>
+          <span id="chat-lead-stage" class="stage-badge">SITUATION</span>
+        </div>
+        <div class="detail-item">
+          <strong>Possui CNPJ/MEI:</strong>
+          <span id="chat-lead-cnpj" class="badge-value">Não identificado</span>
+        </div>
+        <div class="detail-item">
+          <strong>Plano Atual:</strong>
+          <span id="chat-lead-plan" class="badge-value">Não identificado</span>
+        </div>
+        <div class="detail-item">
+          <strong>Vidas/Pessoas:</strong>
+          <span id="chat-lead-lives" class="badge-value">Não identificado</span>
+        </div>
+        <div class="detail-item">
+          <strong>Hospitais Essenciais:</strong>
+          <span id="chat-lead-hospitals" class="badge-value">Não identificado</span>
+        </div>
+      </div>
+
+      <!-- Live Messages -->
+      <div class="chat-history" id="chat-history-container">
+        <!-- Loaded dynamically -->
+      </div>
+
+      <!-- Live Chat Input and Send -->
+      <div class="chat-input-bar">
+        <input type="text" id="manual-message-input" placeholder="Digite uma resposta manual para o cliente...">
+        <button id="btn-send-manual" class="btn btn-primary">Intervir (Corretor)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN OVERLAY -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="logo.png" alt="Perelli Corretora" class="login-logo">
+        <h2>Acesso ao Painel SDR</h2>
+        <p>Área restrita da Perelli Corretora</p>
+      </div>
+      <form id="login-form" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label for="login-user">Usuário</label>
+          <input type="text" id="login-user" placeholder="Insira seu usuário (Ex: @perelli)" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="login-pass">Senha</label>
+          <input type="password" id="login-pass" placeholder="Insira sua senha" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="btn-login" class="btn btn-primary btn-block">
+          Fazer Login
+        </button>
+        <div class="login-error" id="login-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- IMPORT LEADS MODAL -->
+  <div class="modal-overlay hidden" id="import-leads-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Importar Leads via CSV</h3>
+        <button id="btn-close-import-modal" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">
+          Selecione uma planilha no formato **.csv** contendo as colunas de Nome e Telefone. O SDR iniciará o contato via WhatsApp automaticamente com os leads importados.
+        </p>
+        
+        <div class="form-group">
+          <label for="import-channel-select">Canal de Envio (WhatsApp)</label>
+          <select id="import-channel-select" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.25); border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-primary); outline: none;">
+            <option value="">Carregando canais...</option>
+          </select>
+        </div>
+
+        <div class="upload-dropzone" id="csv-dropzone" style="margin-top: 1rem; padding: 1.5rem 1rem;">
+          <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 36px; height: 36px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <p style="font-size: 0.8rem; font-weight: 500; margin-top: 0.5rem;">Arraste o arquivo .csv ou clique para selecionar</p>
+          <input type="file" id="csv-file-input" style="display: none;" accept=".csv">
+          <div class="file-name-preview" id="csv-name-preview" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Nenhum arquivo selecionado</div>
+        </div>
+
+        <div id="csv-preview-container" class="hidden" style="margin-top: 1rem; max-height: 140px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 6px;">
+          <h4 style="font-size: 0.8rem; margin: 0.5rem; font-weight: 600;">Visualização dos dados detectados:</h4>
+          <table class="modern-table" style="font-size: 0.75rem; width: 100%;">
+            <thead>
+              <tr>
+                <th style="padding: 0.5rem;">Nome</th>
+                <th style="padding: 0.5rem;">Telefone</th>
+              </tr>
+            </thead>
+            <tbody id="csv-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid var(--card-border); padding-top: 0.75rem;">
+        <button id="btn-cancel-import" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Cancelar</button>
+        <button id="btn-submit-import" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;" disabled>Iniciar Importação</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
