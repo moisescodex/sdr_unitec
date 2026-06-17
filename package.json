@@ -1,7 +1,7 @@
 {
-  "name": "sdr-perelli",
+  "name": "sdr-unitec",
   "version": "1.0.0",
-  "description": "WhatsApp SDR AI bot for Perelli Corretora (health insurance and brokerage) using SPIN Selling",
+  "description": "WhatsApp SDR AI bot for UNITEC (UNIPÓS/DI UNISE)",
   "main": "dist/index.js",
   "engines": {
     "node": "20.x"
