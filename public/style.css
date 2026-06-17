@@ -6,13 +6,13 @@
   --card-border: rgba(255, 255, 255, 0.05);
   --text-primary: #f3f4f6;
   --text-secondary: #9ca3af;
-  --primary-accent: #138d75; /* Perelli Green/Teal */
+  --primary-accent: #4f46e5; /* UNITEC Indigo */
   --success-accent: #10b981; /* Green */
   --warning-accent: #f59e0b; /* Amber */
   --danger-accent: #ef4444;  /* Red */
   --whatsapp-green: #25d366;
   --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --glow-color: rgba(19, 141, 117, 0.15);
+  --glow-color: rgba(79, 70, 229, 0.15);
 }
 
 * {
@@ -614,7 +614,7 @@ input:checked + .slider:before {
   white-space: nowrap;
 }
 
-/* Custom styles for Perelli Corretora logo and channels selector */
+/* Custom styles for UNITEC logo and channels selector */
 .logo-img {
   height: 42px;
   width: auto;

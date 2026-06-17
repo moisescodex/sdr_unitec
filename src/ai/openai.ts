@@ -231,7 +231,7 @@ export interface SdrResponse {
   } | null;
 }
 
-export async function generateSdrResponse(lead: Lead, baseUrl: string = 'https://sdr-perelli.onrender.com'): Promise<SdrResponse> {
+export async function generateSdrResponse(lead: Lead, baseUrl: string = 'https://sdr-unitec.onrender.com'): Promise<SdrResponse> {
   if (!genAI) {
     return getFallbackMockResponse(lead, baseUrl);
   }
@@ -503,7 +503,7 @@ export function getRegionFromPhone(phone: string): { city: string, state: string
   return mapped ? { ...mapped, ddd } : { city: 'São José do Rio Preto', state: 'SP', ddd };
 }
 
-function getFallbackMockResponse(lead: Lead, baseUrl: string = 'https://sdr-perelli.onrender.com'): SdrResponse {
+function getFallbackMockResponse(lead: Lead, baseUrl: string = 'https://sdr-unitec.onrender.com'): SdrResponse {
   const lastUserMsg = lead.history.filter(m => m.role === 'user').pop()?.content?.toLowerCase() || '';
   const assistantMessages = lead.history.filter(m => m.role === 'assistant');
   const lastAssistantMsg = assistantMessages[assistantMessages.length - 1]?.content?.toLowerCase() || '';
@@ -682,8 +682,8 @@ export async function generateAnalyticsInsights(leadsData: string): Promise<any>
       }
     });
 
-    const prompt = `Você é o Diretor de Analytics e IA da Perelli Corretora de Seguros de Saúde.
-Analise os seguintes históricos de conversas reais de leads que interagiram com o robô SDR automático (Perelli) e foram convertidos (CONVERTED) ou perdidos (LOST).
+    const prompt = `Você é o Diretor de Analytics e IA da UNITEC (UNIPÓS/DI UNISE).
+Analise os seguintes históricos de conversas reais de leads que interagiram com o robô SDR automático (Sophia) e foram convertidos (CONVERTED) ou perdidos (LOST).
 
 CONVERSAS DOS LEADS:
 ${leadsData}

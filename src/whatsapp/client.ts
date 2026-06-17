@@ -57,8 +57,8 @@ whatsappRouter.post('/api/login', (req: Request, res: Response) => {
 
   const isValid = 
     (username === '@huddy' && password === 'Prime2026.') ||
-    (username === '@perelli' && password === 'Perelli2026.') ||
-    (username === '@admin' && password === 'PerelliAdmin.');
+    (username === '@unitec' && password === 'Unitec2026.') ||
+    (username === '@admin' && password === 'UnitecAdmin.');
 
   if (isValid) {
     const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -171,11 +171,11 @@ whatsappRouter.post('/api/leads', async (req: Request, res: Response) => {
     let messageSent = initialMessage;
 
     if (useTemplate) {
-      const activeTemplate = templateName || 'boas_vindas_perelli';
+      const activeTemplate = templateName || 'boas_vindas_unitec';
       const firstName = name ? name.split(' ')[0] : 'Lead';
       
       await sendTemplateMessage(activeChannel, phone, activeTemplate, [firstName]);
-      messageSent = `Olá ${firstName}! Sou o Perelli, consultor virtual da Perelli Corretora. Tudo bem?\n\nMe conta: você quer cotar um plano de saúde individual, familiar ou seria empresarial/CNPJ?`;
+      messageSent = `Olá ${firstName}! Que bom te ver por aqui! Sou a Sophia, sua assistente virtual. Para começarmos, poderia me dizer seu nome completo, por favor? 😊`;
     } else {
       if (!initialMessage) {
         return res.status(400).json({ error: 'Mensagem inicial é obrigatória para envio de texto livre' });
@@ -365,7 +365,7 @@ whatsappRouter.post('/api/simulate', async (req: Request, res: Response) => {
 
         // Salva a resposta no BD
         await LeadState.addMessage(phone, activeChannel, 'assistant', sdrResult.response, sdrResult.media);
-        console.log(`[SIMULATOR OUTGOING] Perelli responde: "${sdrResult.response.replace(/\n/g, '\\n')}"`);
+        console.log(`[SIMULATOR OUTGOING] Sophia responde: "${sdrResult.response.replace(/\n/g, '\\\n')}"`);
         
         if (sdrResult.media) {
           console.log(`[SIMULATOR OUTGOING] Mídia enviada: [${sdrResult.media.type}] URL: ${sdrResult.media.url}`);
@@ -1053,7 +1053,7 @@ whatsappRouter.post('/webhook', async (req: Request, res: Response) => {
 
       if (mediaUrl) {
         if (!mediaUrl.startsWith('http')) {
-          const whaticketApiUrl = process.env.WHATICKET_API_URL || 'https://api.perellicorretora.com.br';
+          const whaticketApiUrl = process.env.WHATICKET_API_URL || 'https://api.unitec.com.br';
           const cleanUrl = whaticketApiUrl.replace(/\/$/, '');
           mediaUrl = `${cleanUrl}/${mediaUrl.replace(/^\//, '')}`;
         }
@@ -1413,7 +1413,7 @@ export async function getChannelConfig(channelPhoneId: string): Promise<{ phone_
 // Helper para envio de mensagem via Whaticket / Z-PRO
 export async function sendWhaticketMessage(whatsappId: string, to: string, text: string, apiKeyAndApiId: string) {
   try {
-    const baseUrl = process.env.WHATICKET_API_URL || 'https://api.perellicorretora.com.br';
+    const baseUrl = process.env.WHATICKET_API_URL || 'https://api.unitec.com.br';
     const cleanUrl = baseUrl.replace(/\/$/, '');
     const cleanNumber = to.replace(/\D/g, '');
 
@@ -1463,7 +1463,7 @@ export async function sendWhaticketMediaMessage(
   apiKeyAndApiId?: string
 ) {
   try {
-    const baseUrl = process.env.WHATICKET_API_URL || 'https://api.perellicorretora.com.br';
+    const baseUrl = process.env.WHATICKET_API_URL || 'https://api.unitec.com.br';
     const cleanUrl = baseUrl.replace(/\/$/, '');
     const cleanNumber = to.replace(/\D/g, '');
 
@@ -1533,7 +1533,7 @@ export async function sendWhaticketMediaMessage(
 // Helper para envio de mensagem via Evolution API
 export async function sendEvolutionMessage(instance: string, to: string, text: string, apiKey: string) {
   try {
-    const baseUrl = process.env.EVOLUTION_API_URL || 'https://api.perellicorretora.com.br';
+    const baseUrl = process.env.EVOLUTION_API_URL || 'https://api.unitec.com.br';
     const cleanUrl = baseUrl.replace(/\/$/, '');
     const cleanNumber = to.replace(/\D/g, '');
 
@@ -1576,7 +1576,7 @@ export async function sendEvolutionMediaMessage(
   apiKey?: string
 ) {
   try {
-    const baseUrl = process.env.EVOLUTION_API_URL || 'https://api.perellicorretora.com.br';
+    const baseUrl = process.env.EVOLUTION_API_URL || 'https://api.unitec.com.br';
     const cleanUrl = baseUrl.replace(/\/$/, '');
     const cleanNumber = to.replace(/\D/g, '');
 
@@ -1966,12 +1966,12 @@ export async function processPendingLeads() {
         await LeadState.saveLead(lead);
 
         const firstName = lead.name ? lead.name.split(' ')[0] : 'Lead';
-        const activeTemplate = 'boas_vindas_perelli';
+        const activeTemplate = 'boas_vindas_unitec';
         
         console.log(`[PENDING WORKER] Enviando template de boas-vindas para ${lead.phone}...`);
         await sendTemplateMessage(activeChannel, lead.phone, activeTemplate, [firstName]);
         
-        const initialMessage = `Olá ${firstName}! Sou o Perelli, consultor virtual da Perelli Corretora. Tudo bem?\n\nMe conta: você quer cotar um plano de saúde individual, familiar ou seria empresarial/CNPJ?`;
+        const initialMessage = `Olá ${firstName}! Que bom te ver por aqui! Sou a Sophia, sua assistente virtual. Para começarmos, poderia me dizer seu nome completo, por favor? 😊`;
         await LeadState.addMessage(lead.phone, activeChannel, 'assistant', initialMessage);
         
         // Aguarda 2 segundos entre mensagens para evitar bloqueio na API
@@ -2184,7 +2184,7 @@ whatsappRouter.post('/api/analytics/analyze', async (req: Request, res: Response
       leadsDataText += `Plano Escolhido: ${l.current_plan || 'Nenhum'}\n`;
       leadsDataText += `Histórico de Conversa:\n`;
       l.history.forEach(m => {
-        leadsDataText += `[${m.role === 'user' ? 'CLIENTE' : 'SDR PERELLI'}]: ${m.content}\n`;
+        leadsDataText += `[${m.role === 'user' ? 'CLIENTE' : 'SDR SOPHIA'}]: ${m.content}\n`;
       });
     });
 

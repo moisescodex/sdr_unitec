@@ -33,7 +33,7 @@ async function startServer() {
     // 2. Inicia o Servidor Express
     app.listen(env.PORT, () => {
       console.log(`==================================================`);
-      console.log(`  SDR Perelli Server Running!                      `);
+      console.log(`  SDR UNITEC Server Running!                       `);
       console.log(`  Port: ${env.PORT}                               `);
       console.log(`  Local Endpoint: http://localhost:${env.PORT}     `);
       console.log(`==================================================`);

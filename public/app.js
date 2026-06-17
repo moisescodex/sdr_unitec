@@ -11,8 +11,8 @@ let parsedLeads = [];
 // Admin Credentials
 const CREDENTIALS = {
   '@huddy': 'Prime2026.',
-  '@perelli': 'Perelli2026.',
-  '@admin': 'PerelliAdmin.'
+  '@unitec': 'Unitec2026.',
+  '@admin': 'UnitecAdmin.'
 };
 
 // DOM Elements
