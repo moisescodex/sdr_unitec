@@ -395,7 +395,7 @@ export async function extractPdfText(pdfBuffer: Buffer): Promise<string> {
 }
 
 export interface DocumentAnalysisResult {
-  detectedType: 'rg' | 'cnh' | 'comprovante_residencia' | 'outro';
+  detectedType: 'rg' | 'cnh' | 'historico_escolar' | 'parecer_coordenacao' | 'outro';
   isReadable: boolean;
   isDocument: boolean;
   feedback: string;
