@@ -1633,8 +1633,9 @@ export async function sendMessage(channelPhoneId: string, to: string, text: stri
     }
 
     // Deteção do tipo de canal
-    const isWhaticket = /^\d+$/.test(config.phone_number_id);
-    const isEvolution = !config.access_token.startsWith('EAA') && !isWhaticket;
+    const isMeta = config.access_token.startsWith('EAA');
+    const isWhaticket = !isMeta && /^\d+$/.test(config.phone_number_id);
+    const isEvolution = !isMeta && !isWhaticket;
 
     if (isWhaticket) {
       await sendWhaticketMessage(config.phone_number_id, to, text, config.access_token);
@@ -1754,8 +1755,9 @@ export async function sendMediaMessage(
       return;
     }
 
-    const isWhaticket = /^\d+$/.test(config.phone_number_id);
-    const isEvolution = !config.access_token.startsWith('EAA') && !isWhaticket;
+    const isMeta = config.access_token.startsWith('EAA');
+    const isWhaticket = !isMeta && /^\d+$/.test(config.phone_number_id);
+    const isEvolution = !isMeta && !isWhaticket;
 
     if (isWhaticket) {
       await sendWhaticketMediaMessage(config.phone_number_id, to, type, media, filename, config.access_token);
