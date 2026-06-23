@@ -28,6 +28,7 @@ export interface Lead {
   follow_up_level?: number;
   last_follow_up_at?: string | null;
   source?: string | null;
+  channel_type?: string | null;
   created_at?: string;
   updated_at?: string;
   history: Message[];
@@ -61,6 +62,7 @@ export class LeadState {
           preferred_hospitals: null,
           requires_intervention: false,
           document_status: null,
+          channel_type: 'whatsapp',
           follow_up_level: 0,
           last_follow_up_at: null,
           source: 'crm',
@@ -94,6 +96,7 @@ export class LeadState {
         follow_up_level: row.follow_up_level || 0,
         last_follow_up_at: row.last_follow_up_at ? new Date(row.last_follow_up_at).toISOString() : null,
         source: row.source || 'crm',
+        channel_type: row.channel_type || 'whatsapp',
         created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
         updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
         history: JSON.parse(row.history || '[]')
@@ -118,6 +121,7 @@ export class LeadState {
       follow_up_level: 0,
       last_follow_up_at: null,
       source: 'crm',
+      channel_type: 'whatsapp',
       history: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -137,8 +141,8 @@ export class LeadState {
     }
 
     await db.query(
-      `INSERT INTO leads (phone, channel_phone_id, name, email, stage, status, history, unread, has_cnpj, current_plan, num_lives, preferred_hospitals, requires_intervention, document_status, follow_up_level, last_follow_up_at, source, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP)
+      `INSERT INTO leads (phone, channel_phone_id, name, email, stage, status, history, unread, has_cnpj, current_plan, num_lives, preferred_hospitals, requires_intervention, document_status, follow_up_level, last_follow_up_at, source, channel_type, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP)
        ON CONFLICT(phone, channel_phone_id) DO UPDATE SET 
        name=excluded.name, 
        email=excluded.email, 
@@ -155,6 +159,7 @@ export class LeadState {
        follow_up_level=excluded.follow_up_level,
        last_follow_up_at=excluded.last_follow_up_at,
        source=excluded.source,
+       channel_type=excluded.channel_type,
        updated_at=CURRENT_TIMESTAMP`,
       [
         lead.phone,
@@ -173,7 +178,8 @@ export class LeadState {
         lead.document_status || null,
         lead.follow_up_level || 0,
         lead.last_follow_up_at || null,
-        lead.source || 'crm'
+        lead.source || 'crm',
+        lead.channel_type || 'whatsapp'
       ]
     );
   }
@@ -253,6 +259,7 @@ export class LeadState {
       follow_up_level: row.follow_up_level || 0,
       last_follow_up_at: row.last_follow_up_at ? new Date(row.last_follow_up_at).toISOString() : null,
       source: row.source || 'crm',
+      channel_type: row.channel_type || 'whatsapp',
       created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
       updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
       history: JSON.parse(row.history || '[]')
@@ -305,6 +312,7 @@ export class LeadState {
       preferred_hospitals: row.preferred_hospitals,
       requires_intervention: row.requires_intervention || false,
       document_status: row.document_status,
+      channel_type: row.channel_type || 'whatsapp',
       created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
       updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
       history: JSON.parse(row.history || '[]')
@@ -362,6 +370,7 @@ export class LeadState {
       preferred_hospitals: row.preferred_hospitals,
       requires_intervention: row.requires_intervention || false,
       document_status: row.document_status,
+      channel_type: row.channel_type || 'whatsapp',
       created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
       updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
       history: JSON.parse(row.history || '[]')
@@ -467,6 +476,7 @@ export class LeadState {
       preferred_hospitals: row.preferred_hospitals,
       requires_intervention: row.requires_intervention || false,
       document_status: row.document_status,
+      channel_type: row.channel_type || 'whatsapp',
       created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
       updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
       history: JSON.parse(row.history || '[]')

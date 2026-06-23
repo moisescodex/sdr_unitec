@@ -60,6 +60,7 @@ const channelFilter = document.getElementById('channel-filter');
 const channelForm = document.getElementById('channel-form');
 const chanNameInput = document.getElementById('chan-name');
 const chanPhoneIdInput = document.getElementById('chan-phone-id');
+const chanTypeInput = document.getElementById('chan-type');
 const chanDisplayInput = document.getElementById('chan-display');
 const chanTokenInput = document.getElementById('chan-token');
 const channelsTableBody = document.getElementById('channels-table-body');
@@ -417,7 +418,8 @@ async function fetchChannels() {
       const selectedVal = channelFilter.value;
       channelFilter.innerHTML = '<option value="">Todos os canais</option>';
       channelsList.forEach(c => {
-        channelFilter.innerHTML += `<option value="${c.phone_number_id}">${escapeHTML(c.name)} (${escapeHTML(c.display_phone_number)})</option>`;
+        const typeStr = c.type === 'instagram' ? 'Instagram' : c.type === 'messenger' ? 'Messenger' : 'WhatsApp';
+        channelFilter.innerHTML += `<option value="${c.phone_number_id}">${escapeHTML(c.name)} (${typeStr})</option>`;
       });
       channelFilter.value = selectedVal;
     }
@@ -428,15 +430,16 @@ async function fetchChannels() {
       if (channelsList.length === 0) {
         channelsTableBody.innerHTML = `
           <tr>
-            <td colspan="3" style="text-align: center; color: var(--text-secondary);">Nenhum canal de WhatsApp cadastrado.</td>
+            <td colspan="3" style="text-align: center; color: var(--text-secondary);">Nenhum canal cadastrado.</td>
           </tr>
         `;
       } else {
         channelsList.forEach(c => {
+          const typeStr = c.type === 'instagram' ? 'Instagram' : c.type === 'messenger' ? 'Messenger' : 'WhatsApp';
           channelsTableBody.innerHTML += `
             <tr>
               <td><strong>${escapeHTML(c.name)}</strong></td>
-              <td>${escapeHTML(c.display_phone_number)} (ID: ${escapeHTML(c.phone_number_id)})</td>
+              <td>${escapeHTML(typeStr)}: ${escapeHTML(c.display_phone_number)} (ID: ${escapeHTML(c.phone_number_id)})</td>
               <td><span style="color: var(--success-accent); font-weight: 600;">● Conectado</span></td>
             </tr>
           `;
@@ -456,6 +459,7 @@ async function handleSaveChannel() {
   const display_phone_number = chanDisplayInput.value.trim();
   const name = chanNameInput.value.trim();
   const access_token = chanTokenInput.value.trim();
+  const type = chanTypeInput ? chanTypeInput.value : 'whatsapp';
 
   const btn = document.getElementById('btn-save-chan');
   btn.disabled = true;
@@ -465,7 +469,7 @@ async function handleSaveChannel() {
     const res = await fetch(`${API_URL}/api/channels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone_number_id, display_phone_number, access_token, name })
+      body: JSON.stringify({ phone_number_id, display_phone_number, access_token, name, type })
     });
 
     if (res.ok) {
@@ -473,8 +477,9 @@ async function handleSaveChannel() {
       chanDisplayInput.value = '';
       chanNameInput.value = '';
       chanTokenInput.value = '';
+      if (chanTypeInput) chanTypeInput.value = 'whatsapp';
       await fetchChannels();
-      alert('Canal de WhatsApp salvo com sucesso!');
+      alert('Canal salvo com sucesso!');
     } else {
       const err = await res.json();
       alert(`Erro: ${err.error || 'Falha ao salvar canal'}`);
@@ -590,6 +595,17 @@ function createLeadCard(lead) {
   // Get channel display
   const channel = channelsList.find(c => c.phone_number_id === lead.channel_phone_id);
   const channelName = channel ? channel.name : 'Padrão';
+  const channelType = channel ? (channel.type || 'whatsapp') : (lead.channel_type || 'whatsapp');
+  let typeBadgeColor = 'rgba(19, 141, 117, 0.2)'; // WhatsApp (greenish)
+  let iconHtml = '📞 ';
+
+  if (channelType === 'instagram') {
+    typeBadgeColor = 'rgba(225, 48, 108, 0.2)'; // Instagram Pink/Purple
+    iconHtml = '📸 ';
+  } else if (channelType === 'messenger') {
+    typeBadgeColor = 'rgba(0, 132, 255, 0.2)'; // Facebook Blue
+    iconHtml = '💬 ';
+  }
 
   const timeString = lead.updated_at ? formatTime(new Date(lead.updated_at)) : '--:--';
   let docsHtml = '';
@@ -631,7 +647,7 @@ function createLeadCard(lead) {
   card.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <div class="card-lead-name">${escapeHTML(lead.name || 'Cliente Sem Nome')}</div>
-      <span style="font-size:0.65rem; background:rgba(19, 141, 117, 0.2); color:var(--text-primary); padding:1px 5px; border-radius:4px;">${escapeHTML(channelName)}</span>
+      <span style="font-size:0.65rem; background:${typeBadgeColor}; color:var(--text-primary); padding:1px 5px; border-radius:4px;">${iconHtml}${escapeHTML(channelName)}</span>
     </div>
     <div class="card-lead-phone">${escapeHTML(lead.phone)}</div>
     <div class="card-lead-cart-preview">${escapeHTML(cnpjText)}</div>

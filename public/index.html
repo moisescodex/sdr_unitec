@@ -172,12 +172,20 @@
                 <input type="text" id="chan-name" placeholder="Ex: WhatsApp Comercial" required>
               </div>
               <div class="form-group">
-                <label for="chan-phone-id">ID do Número (Phone Number ID / Whaticket Connection ID)</label>
-                <input type="text" id="chan-phone-id" placeholder="Ex: 39 ou 1082686744934106" required>
+                <label for="chan-type">Tipo de Canal</label>
+                <select id="chan-type" style="background-color: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="messenger">Facebook Messenger</option>
+                  <option value="instagram">Instagram Direct</option>
+                </select>
               </div>
               <div class="form-group">
-                <label for="chan-display">Número de WhatsApp</label>
-                <input type="text" id="chan-display" placeholder="Ex: +55 (17) 99127-9086" required>
+                <label for="chan-phone-id">ID do Canal (Phone ID / Page ID / Account ID)</label>
+                <input type="text" id="chan-phone-id" placeholder="Ex: 1082686744934106" required>
+              </div>
+              <div class="form-group">
+                <label for="chan-display">Identificador Público (Número, Nome de Usuário ou Link)</label>
+                <input type="text" id="chan-display" placeholder="Ex: +55 (17) 99127-9086 ou @uniposoficial" required>
               </div>
               <div class="form-group">
                 <label for="chan-token">Token de Acesso / API Key</label>

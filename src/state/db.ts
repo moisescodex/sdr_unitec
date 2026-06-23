@@ -43,6 +43,7 @@ async function initDb(pool: Pool) {
       access_token TEXT,
       name TEXT NOT NULL,
       is_active BOOLEAN DEFAULT TRUE,
+      type TEXT DEFAULT 'whatsapp',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -129,6 +130,12 @@ async function initDb(pool: Pool) {
   `);
   await pool.query(`
     ALTER TABLE leads ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'crm';
+  `);
+  await pool.query(`
+    ALTER TABLE whatsapp_channels ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'whatsapp';
+  `);
+  await pool.query(`
+    ALTER TABLE leads ADD COLUMN IF NOT EXISTS channel_type TEXT DEFAULT 'whatsapp';
   `);
 
   // Tabela de configurações

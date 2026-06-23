@@ -111,7 +111,7 @@ whatsappRouter.get('/api/channels', async (req: Request, res: Response) => {
 
 // Cria ou edita um canal de WhatsApp
 whatsappRouter.post('/api/channels', async (req: Request, res: Response) => {
-  const { phone_number_id, display_phone_number, access_token, name } = req.body;
+  const { phone_number_id, display_phone_number, access_token, name, type } = req.body;
   if (!phone_number_id || !display_phone_number || !name) {
     return res.status(400).json({ error: 'phone_number_id, display_phone_number, e name são obrigatórios.' });
   }
@@ -119,13 +119,14 @@ whatsappRouter.post('/api/channels', async (req: Request, res: Response) => {
     const db = await getDb();
     if (db && isDbConnected) {
       await db.query(
-        `INSERT INTO whatsapp_channels (phone_number_id, display_phone_number, access_token, name)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO whatsapp_channels (phone_number_id, display_phone_number, access_token, name, type)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT(phone_number_id) DO UPDATE SET
          display_phone_number = excluded.display_phone_number,
          access_token = excluded.access_token,
-         name = excluded.name`,
-        [phone_number_id, display_phone_number, access_token || null, name]
+         name = excluded.name,
+         type = excluded.type`,
+        [phone_number_id, display_phone_number, access_token || null, name, type || 'whatsapp']
       );
       res.json({ success: true });
     } else {
@@ -765,6 +766,177 @@ whatsappRouter.post('/webhook', async (req: Request, res: Response) => {
       console.error('❌ Erro no webhook Meta:', error);
     }
   }
+  // 1.2. Se for o webhook do Facebook Messenger ou Instagram Direct
+  else if (body.object === 'page' || body.object === 'instagram') {
+    try {
+      const entry = body.entry?.[0];
+      const messaging = entry?.messaging?.[0];
+      
+      if (messaging) {
+        const senderId = messaging.sender?.id;
+        const recipientId = messaging.recipient?.id;
+        const message = messaging.message;
+
+        if (!res.headersSent) {
+          res.sendStatus(200);
+        }
+
+        if (message && senderId && recipientId) {
+          const messageId = message.mid;
+
+          if (processedMessageIds.has(messageId)) {
+            console.log(`⚠️ [WEBHOOK] Ignorando mensagem duplicada (ID: ${messageId})`);
+            return;
+          }
+
+          processedMessageIds.add(messageId);
+
+          if (processedMessageIds.size > 500) {
+            const firstAdded = Array.from(processedMessageIds)[0];
+            processedMessageIds.delete(firstAdded);
+          }
+
+          const phone = senderId;
+          const activeChannel = recipientId;
+          const channelConfig = await getChannelConfig(activeChannel);
+
+          const channelLabel = body.object === 'page' ? 'Messenger' : 'Instagram';
+          const contactName = `Lead ${channelLabel}`;
+
+          let userText = '';
+
+          if (message.text) {
+            userText = message.text;
+            console.log(`\n📩 [CANAL ${channelLabel}: ${channelConfig.name}] Mensagem de ${contactName} (${phone}): ${userText}`);
+          } else if (message.attachments && message.attachments[0]) {
+            const attachment = message.attachments[0];
+            const type = attachment.type;
+            const url = attachment.payload?.url;
+
+            if (type === 'image') {
+              console.log(`\n📩 [CANAL ${channelLabel}: ${channelConfig.name}] Imagem de ${contactName} (${phone}) - URL: ${url}. Analisando documento...`);
+              try {
+                const imageDataRes = await fetch(url);
+                if (!imageDataRes.ok) {
+                  throw new Error(`Falha ao baixar imagem: ${imageDataRes.statusText}`);
+                }
+                const imageArrayBuffer = await imageDataRes.arrayBuffer();
+                const imageBuffer = Buffer.from(imageArrayBuffer);
+
+                const analysis = await analyzeDocument(imageBuffer, 'image/jpeg');
+                userText = `[Imagem enviada - Tipo: ${analysis.detectedType}, Legível: ${analysis.isReadable}, É Documento: ${analysis.isDocument}, Feedback: ${analysis.feedback}]`;
+                console.log(`📝 Análise da imagem de ${contactName} (${phone}): "${userText}"`);
+
+                await updateLeadDocStatus(phone, activeChannel, analysis);
+              } catch (imgError) {
+                console.error('❌ Erro ao processar/analisar imagem do Messenger/Instagram:', imgError);
+                await sendMessage(activeChannel, phone, 'Desculpe, não consegui abrir a sua imagem... Poderia me mandar novamente?');
+                return;
+              }
+            } else {
+              console.log(`⚠️ Anexo ignorado (tipo não suportado no bot por enquanto: ${type})`);
+              return;
+            }
+          } else {
+            return;
+          }
+
+          // Processa links na mensagem do usuário
+          const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(?:com|net|org|co|app|io|xyz|info|gov|edu|online|site)(?:\/[^\s]*)?)/gi;
+          const matches = userText.match(urlRegex);
+          if (matches && matches.length > 0) {
+            const linksToProcess = matches.slice(0, 2);
+            let linksInfo = '';
+            for (const link of linksToProcess) {
+              const pageContent = await fetchUrlContent(link);
+              linksInfo += `\n\n[Conteúdo extraído do link (${link})]:\n${pageContent}`;
+            }
+            userText += linksInfo;
+          }
+
+          // Pega ou cria o Lead escopado por canal
+          let lead = await LeadState.getLead(phone, activeChannel);
+          if (!lead.source) {
+            lead.source = body.object;
+          }
+          lead.channel_type = body.object === 'page' ? 'messenger' : 'instagram';
+          if (!lead.name || lead.name === 'Lead') {
+            lead.name = contactName;
+          }
+          await LeadState.saveLead(lead);
+
+          // Salva a mensagem no histórico
+          await LeadState.addMessage(phone, activeChannel, 'user', userText);
+
+          // Cancelar qualquer resposta pendente para este usuário (debouncing)
+          const delayKey = `${phone}_${activeChannel}`;
+          if (activeDelays.has(delayKey)) {
+            clearTimeout(activeDelays.get(delayKey));
+            activeDelays.delete(delayKey);
+          }
+
+          // Calcula o delay de resposta consultiva (debouncing e humanização)
+          const charCount = userText.length;
+          const baseDelay = 5000;
+          const perCharDelay = Math.min(charCount * 40, 10000);
+          const randomDelay = Math.floor(Math.random() * 4000) + 2000;
+          const totalDelay = baseDelay + perCharDelay + randomDelay;
+
+          const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+          const timeoutId = setTimeout(async () => {
+            activeDelays.delete(delayKey);
+            try {
+              const updatedLead = await LeadState.getLead(phone, activeChannel);
+
+              if (updatedLead.requires_intervention) {
+                console.log(`[AI SDR STOPPED] O corretor interveio para o lead ${phone}. AI não responderá.`);
+                return;
+              }
+
+              const sdrResult = await generateSdrResponse(updatedLead, baseUrl);
+              if (sdrResult.stage !== updatedLead.stage) {
+                await LeadState.updateStage(phone, activeChannel, sdrResult.stage);
+                console.log(`🔄 Lead ${updatedLead.name} avançou para fase: ${sdrResult.stage}`);
+              }
+
+              await LeadState.addMessage(phone, activeChannel, 'assistant', sdrResult.response, sdrResult.media);
+
+              const chunks = splitMessage(sdrResult.response);
+              console.log(`📤 Enviando resposta dividida em ${chunks.length} mensagens para ${phone}...`);
+
+              for (let i = 0; i < chunks.length; i++) {
+                const chunk = chunks[i];
+                const delay = getTypingDelay(chunk);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                await sendMessage(activeChannel, phone, chunk);
+              }
+
+              if (sdrResult.media) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await sendMediaMessage(
+                  activeChannel,
+                  phone,
+                  sdrResult.media.type,
+                  { link: sdrResult.media.url },
+                  sdrResult.media.filename
+                );
+                console.log(`📤 Mídia enviada para ${phone}: [${sdrResult.media.type}] URL: ${sdrResult.media.url}`);
+              }
+            } catch (err) {
+              console.error(`❌ Erro ao enviar resposta para ${phone}:`, err);
+            }
+          }, totalDelay);
+
+          activeDelays.set(delayKey, timeoutId);
+        }
+      } else {
+        if (!res.headersSent) res.sendStatus(200);
+      }
+    } catch (error) {
+      console.error('❌ Erro no webhook Messenger/Instagram:', error);
+    }
+  }
   // 2. Se for o webhook da Evolution API
   else if (body.event === 'messages.upsert') {
     try {
@@ -1382,7 +1554,7 @@ async function triggerNextResponse(phone: string, activeChannel: string, baseUrl
 }
 
 // Helper para obter credenciais do canal
-export async function getChannelConfig(channelPhoneId: string): Promise<{ phone_number_id: string, access_token: string, display_phone_number: string, name: string }> {
+export async function getChannelConfig(channelPhoneId: string): Promise<{ phone_number_id: string, access_token: string, display_phone_number: string, name: string, type: string }> {
   try {
     const db = await getDb();
     if (db && isDbConnected && channelPhoneId && channelPhoneId !== 'default') {
@@ -1393,7 +1565,8 @@ export async function getChannelConfig(channelPhoneId: string): Promise<{ phone_
           phone_number_id: row.phone_number_id,
           access_token: row.access_token || env.META_ACCESS_TOKEN,
           display_phone_number: row.display_phone_number,
-          name: row.name
+          name: row.name,
+          type: row.type || 'whatsapp'
         };
       }
     }
@@ -1406,7 +1579,8 @@ export async function getChannelConfig(channelPhoneId: string): Promise<{ phone_
     phone_number_id: env.META_PHONE_ID || 'default',
     access_token: env.META_ACCESS_TOKEN || '',
     display_phone_number: 'default',
-    name: 'Canal Principal'
+    name: 'Canal Principal',
+    type: 'whatsapp'
   };
 }
 
@@ -1632,6 +1806,28 @@ export async function sendMessage(channelPhoneId: string, to: string, text: stri
       return;
     }
 
+    if (config.type === 'messenger' || config.type === 'instagram') {
+      const response = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipient: { id: to },
+          message: { text: text }
+        })
+      });
+
+      const data = await response.json() as any;
+      if (!response.ok) {
+        console.error(`❌ Erro da API da Meta (Messenger/Instagram) no canal ${config.name} ao enviar:`, JSON.stringify(data, null, 2));
+      } else {
+        console.log(`✅ Mensagem enviada via ${config.type} para ${to}`);
+      }
+      return;
+    }
+
     // Deteção do tipo de canal
     const isMeta = config.access_token.startsWith('EAA');
     const isWhaticket = !isMeta && /^\d+$/.test(config.phone_number_id);
@@ -1752,6 +1948,41 @@ export async function sendMediaMessage(
     const config = await getChannelConfig(channelPhoneId);
     if (!config.access_token || config.phone_number_id === 'default') {
       console.warn(`⚠️ Envio de mídia ignorado: Canal '${channelPhoneId}' sem chave cadastrada.`);
+      return;
+    }
+
+    if (config.type === 'messenger' || config.type === 'instagram') {
+      if (!media.link) {
+        console.warn(`⚠️ Envio de mídia ignorado para Messenger/Instagram: Link da mídia não fornecido.`);
+        return;
+      }
+      const attachmentType = type === 'document' ? 'file' : type;
+      const response = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipient: { id: to },
+          message: {
+            attachment: {
+              type: attachmentType,
+              payload: {
+                url: media.link,
+                is_reusable: true
+              }
+            }
+          }
+        })
+      });
+
+      const data = await response.json() as any;
+      if (!response.ok) {
+        console.error(`❌ Erro da API da Meta (Messenger/Instagram) ao enviar mídia (${type}) no canal ${config.name}:`, JSON.stringify(data, null, 2));
+      } else {
+        console.log(`✅ Mídia [${type}] enviada com sucesso via ${config.type} para ${to}`);
+      }
       return;
     }
 
